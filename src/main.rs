@@ -41,17 +41,19 @@ fn main() {
         ).unwrap(),
         gpio::PinDriver::output(dc).unwrap(),
     );
-
-    let mut display = mipidsi::Builder::st7789(di)
+    // Inverted color fixed by using st7789_pico1
+    let mut display = mipidsi::Builder::st7789_pico1(di)
         .init(&mut delay::Ets, Some(gpio::PinDriver::output(rst).unwrap())).unwrap();
 
     display.set_orientation(mipidsi::options::Orientation::Portrait(false)).unwrap();
-
     // The TTGO board's screen does not start at offset 0x0, and the physical size is 135x240, instead of 240x320
-    let top_left = Point::new(52, 40);
-    let size = Size::new(135, 240);
+    // let top_left = Point::new(0, 0);
+    // let size = Size::new(135, 240);
+    // let mut cropped_display =  display.cropped(&Rectangle::new(top_left, size));
 
-    led_draw(&mut display.cropped(&Rectangle::new(top_left, size)), "test").unwrap();
+    led_draw(&mut display, "test ").unwrap();
+
+    // let _ = display.clear(Rgb565::BLACK);
 
 
 }
@@ -75,9 +77,6 @@ fn led_draw<D>(display: &mut D, data: &str) -> Result<(), D::Error>
 
     Text::new(data,Point::new(10, (display.bounding_box().size.height - 10) as i32 / 2),
               MonoTextStyle::new(&FONT_10X20, RgbColor::RED)).draw(display)?;
-
-    Text::new("EVA  \n Privet!",Point::new(15, (display.bounding_box().size.height - 30) as i32 / 2),
-        MonoTextStyle::new(&FONT_10X20, RgbColor::WHITE)).draw(display)?;
 
     Ok(())
 }
