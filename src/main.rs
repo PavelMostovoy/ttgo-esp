@@ -6,8 +6,9 @@ use embedded_graphics::pixelcolor::*;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
 use embedded_graphics::text::*;
-use std::time::{Duration};
+use std::time::{Duration, Instant};
 use std::thread::sleep;
+use esp_idf_svc::sys::time;
 
 fn main() {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -57,9 +58,11 @@ fn main() {
 
     led_draw(&mut display, "test ").unwrap();
     sleep(Duration::new(1, 0));
-
-    for _ in 1..10 {
+    let now = Instant::now();
+    for n in 1..10 {
         let _ = display.clear(Rgb565::BLACK);
+        sleep(Duration::new(1, 0));
+        led_draw(&mut display, format!("{}", now.elapsed().as_secs()).as_str()).unwrap();
         sleep(Duration::new(1, 0));
         let _ = display.clear(Rgb565::RED);
         sleep(Duration::new(1, 0));
