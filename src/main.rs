@@ -6,6 +6,8 @@ use embedded_graphics::pixelcolor::*;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
 use embedded_graphics::text::*;
+use std::time::{Duration};
+use std::thread::sleep;
 
 fn main() {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -46,14 +48,24 @@ fn main() {
         .init(&mut delay::Ets, Some(gpio::PinDriver::output(rst).unwrap())).unwrap();
 
     display.set_orientation(mipidsi::options::Orientation::Portrait(false)).unwrap();
+    let _ = display.clear(Rgb565::BLACK);
+
     // The TTGO board's screen does not start at offset 0x0, and the physical size is 135x240, instead of 240x320
     // let top_left = Point::new(0, 0);
     // let size = Size::new(135, 240);
     // let mut cropped_display =  display.cropped(&Rectangle::new(top_left, size));
 
     led_draw(&mut display, "test ").unwrap();
+    sleep(Duration::new(1, 0));
 
-    // let _ = display.clear(Rgb565::BLACK);
+    for _ in 1..10 {
+        let _ = display.clear(Rgb565::BLACK);
+        sleep(Duration::new(1, 0));
+        let _ = display.clear(Rgb565::RED);
+        sleep(Duration::new(1, 0));
+    }
+
+
 
 
 }

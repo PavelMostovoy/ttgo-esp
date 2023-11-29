@@ -29,6 +29,7 @@ esp-idf-svc = { version = "0.47.1", default-features = false }
 display-interface-spi = "0.4.1"
 mipidsi = "0.7.1"
 embedded-graphics = "0.8.1"
+time = "0.3.30"
 
 
 [build-dependencies]
