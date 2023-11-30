@@ -8,7 +8,6 @@ use embedded_graphics::primitives::*;
 use embedded_graphics::text::*;
 use std::time::{Duration, Instant};
 use std::thread::sleep;
-use esp_idf_svc::sys::time;
 
 fn main() {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -57,20 +56,28 @@ fn main() {
     // let mut cropped_display =  display.cropped(&Rectangle::new(top_left, size));
 
     led_draw(&mut display, "test ").unwrap();
-    sleep(Duration::new(1, 0));
+    sleep(Duration::new(2, 0));
     let now = Instant::now();
-    for n in 1..10 {
-        let _ = display.clear(Rgb565::BLACK);
-        sleep(Duration::new(1, 0));
-        led_draw(&mut display, format!("{}", now.elapsed().as_secs()).as_str()).unwrap();
+    for _ in 1..10 {
+        let color: [u8; 3] = [1, 2, 3];
+        let _ = rectangle_simple(&mut display, color);
+
         sleep(Duration::new(1, 0));
         let _ = display.clear(Rgb565::RED);
         sleep(Duration::new(1, 0));
+
+        led_draw(&mut display, format!("{}", now.elapsed().as_secs()).as_str()).unwrap();
+        sleep(Duration::new(1, 0));
     }
+}
 
-
-
-
+fn rectangle_simple<D>(display: &mut D, color: [u8; 3]) -> Result<(), D::Error>
+    where D: DrawTarget<Color=Rgb565>
+{
+    Rectangle::new(display.bounding_box().top_left, display.bounding_box().size)
+        .into_styled(PrimitiveStyle::with_fill(Rgb565::new(color[0], color[1], color[2])))
+        .draw(display)?;
+    Ok(())
 }
 
 fn led_draw<D>(display: &mut D, data: &str) -> Result<(), D::Error>
