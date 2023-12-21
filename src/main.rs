@@ -1,30 +1,45 @@
+mod wifi_module;
+
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::time::{Duration, Instant};
+use std::thread::sleep;
+
 use display_interface_spi::SPIInterfaceNoCS;
+
 use esp_idf_svc::hal::{delay, gpio, prelude::*, spi};
+use esp_idf_svc::eventloop::EspSystemEventLoop;
 use mipidsi;
+
 use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
 use embedded_graphics::pixelcolor::*;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
 use embedded_graphics::text::*;
-use std::time::{Duration, Instant};
-use std::thread::sleep;
+// use esp_idf_svc::nvs::{EspDefaultNvsPartition};
+
 use rand::Rng;
+
+
 static FLAG: AtomicBool = AtomicBool::new(false);
 static FLAG_LIGHT: AtomicBool = AtomicBool::new(false);
+
+
 fn gpio_int_callback() {
     // Assert FLAG indicating a press button happened
     FLAG.store(true, Ordering::Relaxed);
 }
-fn backlight_flag(){
-    FLAG_LIGHT.store(true,Ordering::Relaxed);
+
+fn backlight_flag() {
+    FLAG_LIGHT.store(true, Ordering::Relaxed);
 }
 
 
-
-
 fn main() {
+    // CPU clock
+
+
+
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
@@ -33,6 +48,12 @@ fn main() {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     let peripherals = Peripherals::take().unwrap();
+
+    // wifi setup
+    let sysloop = EspSystemEventLoop::take().unwrap();
+    let mut wifi = wifi_module::wifi(peripherals.modem, sysloop.clone());
+
+
     // setup pins for ttgo display
     let pins = peripherals.pins;
     let backlight: gpio::Gpio4 = pins.gpio4;
@@ -93,7 +114,7 @@ fn main() {
     let now = Instant::now();
     let mut temp_value = now.elapsed().as_millis();
     let mut count = 0_u32;
-    let mut light_status:bool = true;
+    let mut light_status: bool = true;
     loop {
         let color: [u8; 3] = [rand::random::<u8>(), rand::random::<u8>(), rand::random::<u8>()];
         let _ = rectangle_simple(&mut display, &color);
@@ -101,18 +122,16 @@ fn main() {
         // simple_text_clear(&mut display, format!("{}", &temp_value).as_str());
         // sleep(Duration::new(1, 0));
 
-        println!("Second button status {}",FLAG_LIGHT.load(Ordering::Relaxed));
-        if FLAG_LIGHT.load(Ordering::Relaxed){
+        //better use log but print also works
+        // println!("Second button status {}", FLAG_LIGHT.load(Ordering::Relaxed));
+        if FLAG_LIGHT.load(Ordering::Relaxed) {
             button_right.enable_interrupt().unwrap();
             FLAG_LIGHT.store(false, Ordering::Relaxed);
             light_status = !light_status;
-            if light_status{
+            if light_status {
                 backlight.set_high().unwrap();
-            }
-           else{backlight.set_low().unwrap()}
-
+            } else { backlight.set_low().unwrap() }
         }
-
 
 
         if FLAG.load(Ordering::Relaxed) {
@@ -123,23 +142,21 @@ fn main() {
             button_left.enable_interrupt().unwrap();
             // updating count
             count = count.wrapping_add(1);
-            if count > 5{
-                break
+            if count > 5 {
+                break;
             }
         }
-
     }
     temp_value = now.elapsed().as_millis();
-    simple_text_clear(&mut display,  format!("{}", &temp_value).as_str());
-
+    simple_text_clear(&mut display, format!("{}", &temp_value).as_str());
 }
 
 fn rectangle_simple<D>(display: &mut D, color: &[u8; 3]) -> Result<(), D::Error>
     where D: DrawTarget<Color=Rgb565>
 {
     let size = Size::new(rand::thread_rng().gen_range(2..20), rand::thread_rng().gen_range(2..20));
-    let start_point = Point::new(rand::thread_rng().gen_range(0..125) as i32, rand::thread_rng().gen_range(0..230) as i32 );
-    Rectangle::new(start_point , size)
+    let start_point = Point::new(rand::thread_rng().gen_range(0..125) as i32, rand::thread_rng().gen_range(0..230) as i32);
+    Rectangle::new(start_point, size)
         .into_styled(PrimitiveStyle::with_fill(Rgb565::new(color[0], color[1], color[2])))
         .draw(display)?;
     Ok(())
@@ -168,20 +185,21 @@ fn led_draw<D>(display: &mut D, data: &str) -> Result<(), D::Error>
     Ok(())
 }
 
-fn simple_text<D>(display: &mut D, data: &str) -> Result<(),D::Error>
+fn simple_text<D>(display: &mut D, data: &str) -> Result<(), D::Error>
     where D: DrawTarget<Color=Rgb565>
 {
     Text::new(data, Point::new(10, (display.bounding_box().size.height - 10) as i32 / 2),
               MonoTextStyle::new(&FONT_10X20, RgbColor::BLACK)).draw(display)?;
     Ok(())
 }
-fn simple_text_clear<D>(display: &mut D, data: &str) -> Result<(),D::Error>
+
+fn simple_text_clear<D>(display: &mut D, data: &str) -> Result<(), D::Error>
     where D: DrawTarget<Color=Rgb565>
 {
     let size = Size::new(45, 20);
     let start_point_text = Point::new(1, 15);
     let start_point = Point::new(0, 0);
-    Rectangle::new(start_point , size)
+    Rectangle::new(start_point, size)
         .into_styled(PrimitiveStyle::with_fill(Rgb565::GREEN))
         .draw(display)?;
     Text::new(data, start_point_text,
