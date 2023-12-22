@@ -6,7 +6,6 @@ use esp_idf_svc::hal::prelude::*;
 use esp_idf_svc::hal::uart::*;
 
 
-
 fn main() {
     esp_idf_svc::sys::link_patches();
 
@@ -28,30 +27,26 @@ fn main() {
     loop {
         let mut buf = [0_u8; 1];
         uart.read(&mut buf, BLOCK).unwrap();
-        let mut message: Vec<String> = vec![];
+        let mut message = String::new();
         if let Ok(char) = std::str::from_utf8(&buf) {
-            if char == "$" {
-
-
+            if char == "\n" {
+                let mut counter:u8 = 0;
                 loop {
-
+                    if counter >=4{break};
                     let mut buf = [0_u8; 1];
                     uart.read(&mut buf, BLOCK).unwrap();
+                    if let Ok(string) = std::str::from_utf8(&buf) {
+                        if string == "*" { counter +=1 };
+                        let char = string.chars().next().unwrap();
 
-                    if let Ok(char) = std::str::from_utf8(&buf) {
-                        if char == "*" {break}
-
-                         message.push(String::from(char));
+                        message.push(char);
 
                     };
-
-
+                    if counter > 0 {counter +=1;}
                 }
-
             }
-
         };
-        println!("{:?}", message);
-        sleep(core::time::Duration::from_secs(1));
+        println!("{}", message);
+        // sleep(core::time::Duration::from_secs(1));
     }
 }
