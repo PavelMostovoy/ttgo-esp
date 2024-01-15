@@ -31,8 +31,8 @@ const PROGMEM uint8_t GPVTGOff[] = { 0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0
 const PROGMEM uint8_t GPGSAOff[] = { 0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x32 };
 
 int fixPin = D10;
-int batteryPin = D0;
-int gpsPowerPin =D8;
+int batteryPin = A0;
+int gpsPowerPin =D2;
 
 bool pos_fix = false;
 
@@ -92,29 +92,28 @@ void setup() {
 
   pinMode(fixPin, INPUT);
   pinMode(gpsPowerPin, OUTPUT);
-  esp_sleep_enable_timer_wakeup(100000000);
 
-  digitalWrite(gpsPowerPin, HIGH);
+  esp_sleep_enable_timer_wakeup(100000000);
 
     int tempValue = analogRead(batteryPin);
     if (tempValue*1.4/1000 < 3.2 ){
       digitalWrite(gpsPowerPin, LOW);
       delay(10);
       esp_deep_sleep_start();
-
-    }
+   }
 
 
 
   Serial.begin(115200);  // put your setup code here, to run once:
   GPS.begin(38400, SERIAL_8N1, MYPORT_RX, MYPORT_TX);
-  delay(5000);
-  GPS_SendConfig(ClearConfig, 21);
+  digitalWrite(gpsPowerPin, HIGH);
+  delay(1000);
+  // GPS_SendConfig(ClearConfig, 21);
   GPS_SendConfig(GPGLLOff, 16);
   GPS_SendConfig(GPGSVOff, 16);
   GPS_SendConfig(GPVTGOff, 16);
   GPS_SendConfig(GPGSAOff, 16);
-  GPS_SendConfig(Navrate10hz, 14);
+  // GPS_SendConfig(Navrate10hz, 14);
   attachInterrupt(fixPin, fonction_ISR, RISING);
 
   WiFi.mode(WIFI_STA);
@@ -162,7 +161,7 @@ void loop() {
 
     recvWithStartEndMarkers();
     data.voltage = batteryVoltage;
-    if (batteryVoltage < 3.30){
+    if (batteryVoltage < 3.20){
       digitalWrite(gpsPowerPin, LOW);
       esp_deep_sleep_start();
 
@@ -191,7 +190,7 @@ void loop() {
 
     newData = false;
 
-    // delay(1000);
+    delay(100);
   }
 }
 
